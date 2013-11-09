@@ -18,21 +18,33 @@ public class AuctionSearchTest
 		String reply = as.echo(message);
 		System.out.println("Reply: " + reply);
 
-		String query = "superman";
-		SearchResult[] basicResults = as.basicSearch(query, 0, 20);
+		/* String query = "star trek";
+		SearchResult[] basicResults = as.basicSearch(query, 0, 0);
 		System.out.println("Basic Search Query: " + query);
-		System.out.println("Received " + basicResults.length + " results");
 		for (SearchResult result : basicResults)
 		{
 			System.out.println(result.getItemId() + ": " + result.getName());
 		}
+		System.out.println("Received " + basicResults.length + " results"); */
+		
+		/* public static final String ItemName = "ItemName"; // java.lang.String
+		public static final String Category = "Category"; // java.lang.String
+		public static final String SellerId = "SellerId"; // java.lang.String
+		public static final String BuyPrice = "BuyPrice"; // java.lang.Double
+		public static final String BidderId = "BidderId"; // java.lang.String
+		public static final String EndTime = "EndTime"; // java.util.Date
+		public static final String Description = "Description"; // java.lang.String*/ 
 
 		SearchConstraint constraint = new SearchConstraint(FieldName.BuyPrice, "5.99");
-		SearchConstraint[] constraints =
-		{ constraint };
+		// SearchConstraint constraint1 = new SearchConstraint(FieldName.ItemName, "trek");
+		// SearchConstraint constraint2 = new SearchConstraint(FieldName.SellerId, "intergalactic");
+		//SearchConstraint constraint3 = new SearchConstraint(FieldName.Category, "Collectibles");
+		//SearchConstraint constraint4 = new SearchConstraint(FieldName.Description, "brand");
+		//SearchConstraint constraint5 = new SearchConstraint(FieldName.Description, "new");
+		SearchConstraint[] constraints = {constraint};
+		
 		SearchResult[] advancedResults = as.advancedSearch(constraints, 0, 20);
-		System.out.println("Advanced Search");
-		System.out.println("Received " + advancedResults.length + " results");
+		System.out.println("Advanced search received " + advancedResults.length + " results");
 		for (SearchResult result : advancedResults)
 		{
 			System.out.println(result.getItemId() + ": " + result.getName());

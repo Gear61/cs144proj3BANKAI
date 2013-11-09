@@ -60,13 +60,16 @@ public class Indexer
 			// that needs to be indexed by lucene
 			BasicBean toIndex;
 			String itemID, category;
+			
 			// this IndexWriter is used in the indexAuction method
 			// retreive the IndexWriter that's already initialized
 			IndexWriter writer = getIndexWriter(false);
+			
 			// second query to run to get categories from database
 			String innerQuery = "SELECT Category FROM Category WHERE ItemID = ";
 			ResultSet rsInner;
 			Statement sInner = conn.createStatement();
+			
 			// iterate through the query results till null
 			while (rs.next())
 			{
@@ -75,15 +78,19 @@ public class Indexer
 				toIndex.setDesc(rs.getString("Description"));
 				itemID = rs.getString("ItemID");
 				toIndex.setItemID(itemID);
+				
 				// complete the inner query to
 				// SELECT Category FROM Category WHERE ItemID = (current itemID)
 				innerQuery += itemID;
 				rsInner = sInner.executeQuery(innerQuery);
+				
 				// get the category string from the result set
 				category = getAllCat(rsInner);
 				toIndex.setCategory(category);
+				
 				// reset the query string for next result
 				innerQuery = "SELECT Category FROM Category WHERE ItemID = ";
+				
 				// pass basicbean to index method
 				indexAuction(toIndex, writer);
 			}
@@ -133,19 +140,20 @@ public class Indexer
 	public void indexAuction(BasicBean b, IndexWriter writer) throws IOException
 	{
 		Document doc = new Document();
+		
 		// add fields and values that are needed for the search
 		doc.add(new Field("name", b.getName(), Field.Store.YES, Field.Index.TOKENIZED));
 		doc.add(new Field("category", b.getCategory(), Field.Store.YES, Field.Index.TOKENIZED));
 		doc.add(new Field("desc", b.getDesc(), Field.Store.YES, Field.Index.TOKENIZED));
+		doc.add(new Field("itemID", b.getItemID(), Field.Store.YES, Field.Index.TOKENIZED));
+		
 		String fullSearchableText = b.getName() + " " + b.getCategory() + " " + b.getDesc();
-		doc.add(new Field("content", fullSearchableText, Field.Store.NO, Field.Index.TOKENIZED));
 		// write tuple to the writer
 		writer.addDocument(doc);
 	}
 
 	public void rebuildIndexes()
 	{
-
 		Connection conn = null;
 
 		// create a connection to the database to retrieve Items from MySQL

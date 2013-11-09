@@ -20,7 +20,6 @@ import edu.ucla.cs.cs144.DbManager;
 import edu.ucla.cs.cs144.SearchConstraint;
 import edu.ucla.cs.cs144.SearchResult;
 
-
 //justin's libraries and shiet
 import java.util.ArrayList;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -31,80 +30,83 @@ public class AuctionSearch implements IAuctionSearch
 	// AXIS 2
 	// username: admin
 	// password: axis2
-	
+
 	// Convert user inputted form to MySQL form
 	public static String convertDate(String time) throws ParseException
 	{
-		// Create a format that parses from XML date format into Java Date format
+		// Create a format that parses from XML date format into Java Date
+		// format
 		String expectedPattern = "MMM-dd-yy HH:mm:ss";
-        SimpleDateFormat format = new SimpleDateFormat(expectedPattern);   
-        
+		SimpleDateFormat format = new SimpleDateFormat(expectedPattern);
+
 		// Parse from passed in XML date to Java Date
-        Date date = format.parse(time);
-		
-		// Create formatter to convert from Java Date to desired MySQL timestamp format
-        String desiredPattern = "yyyy-MM-dd HH:mm:ss";
+		Date date = format.parse(time);
+
+		// Create formatter to convert from Java Date to desired MySQL timestamp
+		// format
+		String desiredPattern = "yyyy-MM-dd HH:mm:ss";
 		SimpleDateFormat format2 = new SimpleDateFormat(desiredPattern);
-		
+
 		// Format from Java Date to timestamp format. Return
 		String convertedDate = format2.format(date);
 		return convertedDate;
-    }
-	
+	}
+
 	// Returns a WHERE clause given a search constraint
-	public String convertConstraint (SearchConstraint s) throws ParseException
-	{		
+	public String convertConstraint(SearchConstraint s) throws ParseException
+	{
 		if (s.getFieldName().equals(FieldName.SellerId))
 		{
 			return "Auction.UserID='" + s.getValue() + "'";
 		}
-		
+
 		if (s.getFieldName().equals(FieldName.BuyPrice))
 		{
 			return "Buy_Price='" + s.getValue() + "'";
 		}
-		
+
 		if (s.getFieldName().equals(FieldName.BidderId))
 		{
 			return "Bids.UserID='" + s.getValue() + "'";
 		}
-		
+
 		if (s.getFieldName().equals(FieldName.EndTime))
 		{
 			return "Ends='" + convertDate(s.getValue()) + "'";
 		}
-		
+
 		return "Error, invalid search constraint.";
 	}
-	
+
 	public class CustomComparator implements Comparator<SearchResult>
 	{
-	    @Override
-	    public int compare(SearchResult o1, SearchResult o2)
-	    {
-	        if (Integer.parseInt(o1.getItemId()) > Integer.parseInt(o2.getItemId()))
-	        {
-	        	return 1;
-	        }
-	        else if (Integer.parseInt(o1.getItemId()) < Integer.parseInt(o2.getItemId()))
-	        {
-	        	return -1;
-	        }
-	        else
-	        {
-	        	return 0;
-	        }
-	    }
+		@Override
+		public int compare(SearchResult o1, SearchResult o2)
+		{
+			if (Integer.parseInt(o1.getItemId()) > Integer.parseInt(o2.getItemId()))
+			{
+				return 1;
+			}
+			else if (Integer.parseInt(o1.getItemId()) < Integer.parseInt(o2.getItemId()))
+			{
+				return -1;
+			}
+			else
+			{
+				return 0;
+			}
+		}
 	}
-	
+
 	// Finds intersection of 2 ArrayLists of SearchResults and returns it
-	public ArrayList<SearchResult> mergeResultsLists (ArrayList<SearchResult> a, ArrayList<SearchResult> b)
-	{		
+	public ArrayList<SearchResult> mergeResultsLists(ArrayList<SearchResult> a, ArrayList<SearchResult> b)
+	{
 		if (a.size() == 0 && b.size() == 0)
 		{
 			return new ArrayList<SearchResult>(); // Return empty list
 		}
-		if (a.size() == 0) // If first list is empty, just return second list because we know it has stuff
+		if (a.size() == 0) // If first list is empty, just return second list
+							// because we know it has stuff
 		{
 			return b;
 		}
@@ -112,16 +114,16 @@ public class AuctionSearch implements IAuctionSearch
 		{
 			return a;
 		}
-		
+
 		// System.out.println("Merging Lucene and SQL results...");
-		
+
 		// Otherwise, sort, merge as new list, return
 		// Sort puts this in ASCENDING order
 		Collections.sort(a, new CustomComparator());
 		Collections.sort(b, new CustomComparator());
-		
+
 		ArrayList<SearchResult> mergedList = new ArrayList<SearchResult>();
-		
+
 		int i = 0; // for A
 		int j = 0; // for B
 		while (i < a.size() && j < b.size())
@@ -138,18 +140,20 @@ public class AuctionSearch implements IAuctionSearch
 			{
 				j++;
 			}
-			else // Advance A (i)
+			else
+			// Advance A (i)
 			{
 				i++;
 			}
 		}
-		// System.out.println("Intersection has " + mergedList.size() + " results.");
+		// System.out.println("Intersection has " + mergedList.size() +
+		// " results.");
 		return mergedList;
 	}
-	
+
 	public SearchResult[] basicSearch(String query, int numResultsToSkip, int numResultsToReturn)
 	{
-		ArrayList <SearchResult> results = new ArrayList <SearchResult>();
+		ArrayList<SearchResult> results = new ArrayList<SearchResult>();
 		try
 		{
 			// Do a search. Go HAM.
@@ -157,22 +161,23 @@ public class AuctionSearch implements IAuctionSearch
 			SearchEngine instance = new SearchEngine();
 			Hits hits = instance.performSearch(query);
 
-			// System.out.println("Basic search returned " + hits.length() + " results.");
-			
+			// System.out.println("Basic search returned " + hits.length() +
+			// " results.");
+
 			@SuppressWarnings("unchecked")
 			Iterator<Hit> iter = hits.iterator();
-			
+
 			Hit hit;
-			
+
 			// Skip the number of results we were told to
 			for (int i = 0; i < numResultsToSkip && iter.hasNext(); i++)
 			{
 				hit = iter.next();
 			}
-			
+
 			if (numResultsToReturn == 0)
 			{
-				while(iter.hasNext())
+				while (iter.hasNext())
 				{
 					hit = iter.next();
 					Document doc = hit.getDocument();
@@ -194,15 +199,15 @@ public class AuctionSearch implements IAuctionSearch
 			System.out.println("Exception caught.\n");
 		}
 		SearchResult[] answerArray = new SearchResult[results.size()];
-	    answerArray = results.toArray(answerArray);
+		answerArray = results.toArray(answerArray);
 		return answerArray;
 	}
 
 	public SearchResult[] advancedSearch(SearchConstraint[] constraints, int numResultsToSkip, int numResultsToReturn)
 	{
-		ArrayList <SearchResult> LuceneResults = new ArrayList <SearchResult>();
-		ArrayList <SearchResult> SQLResults = new ArrayList <SearchResult>();
-		
+		ArrayList<SearchResult> LuceneResults = new ArrayList<SearchResult>();
+		ArrayList<SearchResult> SQLResults = new ArrayList<SearchResult>();
+
 		Connection con = null;
 		try
 		{
@@ -212,15 +217,17 @@ public class AuctionSearch implements IAuctionSearch
 		{
 			System.out.println("Connecting to the MySQL database failed.");
 		}
-		
+
 		if (constraints.length > 0)
 		{
 			try
 			{
 				String from = "Auction";
-				// Array of pseudo booleans. 0 = Buy_Price, 1 = Category, 2 = Bids
-				
-				int [] combo = {0,0,0};
+				// Array of pseudo booleans. 0 = Buy_Price, 1 = Category, 2 =
+				// Bids
+
+				int[] combo =
+				{ 0, 0, 0 };
 				for (int i = 0; i < constraints.length; i++)
 				{
 					if (constraints[i].getFieldName().equals(FieldName.BuyPrice))
@@ -236,7 +243,7 @@ public class AuctionSearch implements IAuctionSearch
 						combo[2] = 1;
 					}
 				}
-				
+
 				// Join in Buy_Price
 				if (combo[0] == 1)
 				{
@@ -258,10 +265,10 @@ public class AuctionSearch implements IAuctionSearch
 				ArrayList<SearchConstraint> ItemNameConstraints = new ArrayList<SearchConstraint>();
 				ArrayList<SearchConstraint> CategoryConstraints = new ArrayList<SearchConstraint>();
 				ArrayList<SearchConstraint> DescriptionConstraints = new ArrayList<SearchConstraint>();
-				
+
 				// Feed to SQL
 				ArrayList<SearchConstraint> SQLConstraints = new ArrayList<SearchConstraint>();
-				
+
 				// Split constraints into keyword (Lucene) and non-keyword (SQL)
 				for (int i = 0; i < constraints.length; i++)
 				{
@@ -285,14 +292,14 @@ public class AuctionSearch implements IAuctionSearch
 						SQLConstraints.add(constraints[i]);
 					}
 				}
-				
+
 				// Grab all matching auctions for Lucene parameters
 				// name:(+Mariott +Resort)
 				// name:Mariott AND description:Comfortable
 				if (numKeyConstraints > 0)
 				{
 					String query = "";
-					
+
 					if (ItemNameConstraints.size() > 0)
 					{
 						if (ItemNameConstraints.size() == 1)
@@ -313,7 +320,7 @@ public class AuctionSearch implements IAuctionSearch
 							query += ")";
 						}
 					}
-					
+
 					// name:(+Mariott +Resort)
 					// name:Mariott AND description:Comfortable
 					if (CategoryConstraints.size() > 0)
@@ -350,7 +357,7 @@ public class AuctionSearch implements IAuctionSearch
 							query += ")";
 						}
 					}
-					
+
 					// name:(+Mariott +Resort)
 					// name:Mariott AND description:Comfortable
 					if (DescriptionConstraints.size() > 0)
@@ -387,14 +394,14 @@ public class AuctionSearch implements IAuctionSearch
 							query += ")";
 						}
 					}
-					
+
 					if (query != "")
 					{
 						// System.out.println(query);
 						LuceneResults = new ArrayList<SearchResult>(Arrays.asList(basicSearch(query, 0, 0)));
 					}
 				}
-				
+
 				// Grab all matching auctions for SQL parameters
 				if (SQLConstraints.size() > 0)
 				{
@@ -422,7 +429,8 @@ public class AuctionSearch implements IAuctionSearch
 					{
 						SQLResults.add(new SearchResult(rs.getString(1), rs.getString(2)));
 					}
-					// System.out.println("SQL search returned " + SQLResults.size() + " results.");
+					// System.out.println("SQL search returned " +
+					// SQLResults.size() + " results.");
 				}
 			}
 			catch (SQLException e)
@@ -436,11 +444,11 @@ public class AuctionSearch implements IAuctionSearch
 				e.printStackTrace();
 				System.out.println("Date parsing failed.");
 			}
-			
+
 			// Merge SQLResults and LuceneResults here
-			ArrayList <SearchResult> results = mergeResultsLists(SQLResults, LuceneResults);
-			
-			ArrayList <SearchResult> finalResults = new ArrayList<SearchResult>();
+			ArrayList<SearchResult> results = mergeResultsLists(SQLResults, LuceneResults);
+
+			ArrayList<SearchResult> finalResults = new ArrayList<SearchResult>();
 			if (numResultsToReturn == 0) // Return ALL
 			{
 				for (int i = 0; (numResultsToSkip + i) < results.size(); i++)
@@ -455,40 +463,46 @@ public class AuctionSearch implements IAuctionSearch
 					finalResults.add(results.get(numResultsToSkip + i));
 				}
 			}
-			
+
 			SearchResult[] answerArray = new SearchResult[finalResults.size()];
-		    answerArray = finalResults.toArray(answerArray);
+			answerArray = finalResults.toArray(answerArray);
 			return answerArray;
 		}
-		return new SearchResult[0]; // If no constraints passed in, return empty array
+		return new SearchResult[0]; // If no constraints passed in, return empty
+									// array
 	}
 
-/**************************************************************/
-//THIS IS MINE (justin)
-/**************************************************************/
+	/**************************************************************/
+	// THIS IS MINE (justin)
+	/**************************************************************/
 
-
-	public String getXMLDataForItemId(String itemId) {
+	public String getXMLDataForItemId(String itemId)
+	{
 		// TODO: Your code here!
 
-		//connect to the database hurr
+		// connect to the database hurr
 		Connection conn = null;
 		XMLBean entry = new XMLBean();
-		try{
+		try
+		{
 			conn = DbManager.getConnection(true);
 
-		} catch (SQLException e) {
+		}
+		catch (SQLException e)
+		{
 			System.out.println("Connection to database failed!");
 		}
-		try {
+		try
+		{
 			Statement s = conn.createStatement();
 			ResultSet rs;
 			String qAuction, qBids, qCategory, qUser, user, result;
 
-			qAuction = "SELECT * FROM Auction WHERE ItemID="+itemId;
-			qBids = "SELECT * FROM (SELECT * FROM Bids WHERE ItemID="+itemId+") as A INNER JOIN Ebay_Users as B WHERE A.UserID = B.UserID";
+			qAuction = "SELECT * FROM Auction WHERE ItemID=" + itemId;
+			qBids = "SELECT * FROM (SELECT * FROM Bids WHERE ItemID=" + itemId
+					+ ") as A INNER JOIN Ebay_Users as B WHERE A.UserID = B.UserID";
 			qUser = "SELECT * FROM Ebay_Users WHERE UserID=\"";
-			qCategory = "SELECT Category FROM Category WHERE ItemID="+itemId;
+			qCategory = "SELECT Category FROM Category WHERE ItemID=" + itemId;
 
 			rs = s.executeQuery(qAuction);
 			rs.next();
@@ -507,98 +521,117 @@ public class AuctionSearch implements IAuctionSearch
 			rs = s.executeQuery(qBids);
 			setXMLBids(entry, rs);
 
-			//completed XMLBean
+			// completed XMLBean
 			result = createItemXML(entry);
 			return result;
 
-		} catch (SQLException e) {
+		}
+		catch (SQLException e)
+		{
 			System.out.println("ERROR: Query doesn't work in geXMLDataForItemID method!");
 			System.out.println(e);
-		} catch (java.text.ParseException pe) {
+		}
+		catch (java.text.ParseException pe)
+		{
 			System.out.println(pe);
 		}
 
 		return null;
 	}
 
-	public void setXMLCategory(XMLBean x, ResultSet rs) {
-		try {
-				String category;
-				while(rs.next()) {
-					category = rs.getString("Category");
-					x.setCategory(category);
-				}
-		} catch(SQLException e) {
+	public void setXMLCategory(XMLBean x, ResultSet rs)
+	{
+		try
+		{
+			String category;
+			while (rs.next())
+			{
+				category = rs.getString("Category");
+				x.setCategory(category);
+			}
+		}
+		catch (SQLException e)
+		{
 			System.out.println("ERROR: Result Set error in setXMLCategory");
 			System.out.println(e);
 		}
 	}
 
-	public String createItemXML(XMLBean entry) {
+	public String createItemXML(XMLBean entry)
+	{
 		String result;
-		ArrayList <String> category = new ArrayList <String>();
-		ArrayList <XMLBid> bid = new ArrayList <XMLBid>();
+		ArrayList<String> category = new ArrayList<String>();
+		ArrayList<XMLBid> bid = new ArrayList<XMLBid>();
 		category = entry.getCategory();
 		bid = entry.getBid();
 
-		//start of XML output
-		result = 	"<Item ItemID=\""+entry.getItemID()+"\">\n";
-		result +=		"\t<Name>"+entry.getName()+"</Name>\n";
+		// start of XML output
+		result = "<Item ItemID=\"" + entry.getItemID() + "\">\n";
+		result += "\t<Name>" + entry.getName() + "</Name>\n";
 
-		//category handler
-		if (category.size() < 1) {
-			result += 	"\t<Category />\n";
+		// category handler
+		if (category.size() < 1)
+		{
+			result += "\t<Category />\n";
 		}
-		else {
-			for (int i = 0; i < category.size(); ++i) {
-				result+="\t<Category>"+category.get(i)+"</Category>\n";
-			}
-		}
-
-		result +=		"\t<Currently>$"+entry.getCurrently()+"</Currently>\n";
-		result +=		"\t<First_Bid>$"+entry.getFirstBid()+"</First_Bid>\n";
-		result += 		"\t<Number_of_Bids>"+entry.getNumBids()+"</Number_of_Bids>\n";
-
-		//bid handler
-		if (bid.size() < 1) {	
-			result +=	"\t<Bids />\n";
-		}
-		else {
-			for (int i = 0; i < bid.size(); ++i) {
-				result+= "\t<Bids>\n";
-				result+= 	"\t\t<Bid>\n";
-				result+= 		"\t\t\t<Bidder UserID=\""+bid.get(i).getBidderID()+"\" Rating=\""+bid.get(i).getRating()+"\">\n";
-				result+= 			"\t\t\t\t<Location>"+bid.get(i).getLocation()+"</Location>\n";
-				result+= 			"\t\t\t\t<Country>"+bid.get(i).getCountry()+"</Country>\n";
-				result+= 		"\t\t\t</Bidder>\n";
-				result+= 		"\t\t\t<Time>"+bid.get(i).getTime()+"</Time>\n";
-				result+=		"\t\t\t<Amount>"+bid.get(i).getAmount()+"</Amount>\n";
-				result+=	"\t\t</Bid>\n";
-				result+= "\t</Bids>\n";			
-			}
-		}
-
-		result +=		"\t<Location>"+entry.getLocation()+"</Location>\n";
-		result +=		"\t<Country>"+entry.getCountry()+"</Country>\n";
-		result +=		"\t<Started>"+entry.getStarted()+"</Started>\n";
-		result +=		"\t<Ends>"+entry.getEnds()+"</Ends>\n";
-		result +=		"\t<Seller UserID=\""+entry.getUserID()+"\" Rating=\""+entry.getRating()+"\" />\n";
-
-		//Description handler
-		if (entry.getDesc().equals(""))
-			result +=	"\t<Description /> \n";
 		else
-			result +=	"\t<Description>"+entry.getDesc()+"</Description>\n";
-		result +=		"</Item>";
+		{
+			for (int i = 0; i < category.size(); ++i)
+			{
+				result += "\t<Category>" + category.get(i) + "</Category>\n";
+			}
+		}
+
+		result += "\t<Currently>$" + entry.getCurrently() + "</Currently>\n";
+		result += "\t<First_Bid>$" + entry.getFirstBid() + "</First_Bid>\n";
+		result += "\t<Number_of_Bids>" + entry.getNumBids() + "</Number_of_Bids>\n";
+
+		// bid handler
+		if (bid.size() < 1)
+		{
+			result += "\t<Bids />\n";
+		}
+		else
+		{
+			for (int i = 0; i < bid.size(); ++i)
+			{
+				result += "\t<Bids>\n";
+				result += "\t\t<Bid>\n";
+				result += "\t\t\t<Bidder UserID=\"" + bid.get(i).getBidderID() + "\" Rating=\"" + bid.get(i).getRating()
+						+ "\">\n";
+				result += "\t\t\t\t<Location>" + bid.get(i).getLocation() + "</Location>\n";
+				result += "\t\t\t\t<Country>" + bid.get(i).getCountry() + "</Country>\n";
+				result += "\t\t\t</Bidder>\n";
+				result += "\t\t\t<Time>" + bid.get(i).getTime() + "</Time>\n";
+				result += "\t\t\t<Amount>" + bid.get(i).getAmount() + "</Amount>\n";
+				result += "\t\t</Bid>\n";
+				result += "\t</Bids>\n";
+			}
+		}
+
+		result += "\t<Location>" + entry.getLocation() + "</Location>\n";
+		result += "\t<Country>" + entry.getCountry() + "</Country>\n";
+		result += "\t<Started>" + entry.getStarted() + "</Started>\n";
+		result += "\t<Ends>" + entry.getEnds() + "</Ends>\n";
+		result += "\t<Seller UserID=\"" + entry.getUserID() + "\" Rating=\"" + entry.getRating() + "\" />\n";
+
+		// Description handler
+		if (entry.getDesc().equals(""))
+			result += "\t<Description /> \n";
+		else
+			result += "\t<Description>" + entry.getDesc() + "</Description>\n";
+		result += "</Item>";
 		return result;
 	}
 
-
-	public void setXMLBids(XMLBean x, ResultSet rs) throws java.text.ParseException {
-		try {
+	public void setXMLBids(XMLBean x, ResultSet rs) throws java.text.ParseException
+	{
+		try
+		{
 			XMLBid bid;
 			String time;
-			while(rs.next()) {
+			while (rs.next())
+			{
 				bid = new XMLBid();
 				bid.setBidderID(rs.getString("UserID"));
 				bid.setRating(rs.getString("Rating"));
@@ -610,27 +643,35 @@ public class AuctionSearch implements IAuctionSearch
 				bid.setAmount(rs.getString("Amount"));
 				x.setBid(bid);
 			}
-		} catch (SQLException e) {
+		}
+		catch (SQLException e)
+		{
 			System.out.println("ERROR: Result set error in setXMLBids");
 			System.out.println(e);
 		}
 	}
 
-	public void setXMLUser(XMLBean x, ResultSet rs) {
-		try {
+	public void setXMLUser(XMLBean x, ResultSet rs)
+	{
+		try
+		{
 			rs.next();
 			x.setUserID(rs.getString("UserID"));
 			x.setRating(rs.getString("Rating"));
 			x.setLocation(StringEscapeUtils.escapeXml(rs.getString("Location")));
 			x.setCountry(StringEscapeUtils.escapeXml(rs.getString("Country")));
-		} catch (SQLException e) {
+		}
+		catch (SQLException e)
+		{
 			System.out.println("ERROR: Result set error in setXMLUser");
 			System.out.println(e);
 		}
 	}
 
-	public void setXMLAuction(XMLBean x, ResultSet rs) throws java.text.ParseException {
-		try {
+	public void setXMLAuction(XMLBean x, ResultSet rs) throws java.text.ParseException
+	{
+		try
+		{
 			String time;
 			x.setName(rs.getString("Name"));
 			x.setCurrently(rs.getString("Currently"));
@@ -642,8 +683,10 @@ public class AuctionSearch implements IAuctionSearch
 			time = rs.getString("Ends");
 			time = reverseDate(time);
 			x.setEnds(time);
-			x.setDesc(StringEscapeUtils.escapeXml(rs.getString("Description")));		
-		} catch (SQLException e) {
+			x.setDesc(StringEscapeUtils.escapeXml(rs.getString("Description")));
+		}
+		catch (SQLException e)
+		{
 			System.out.println("ERROR: Result set error in setXMLAuction method!");
 		}
 	}
@@ -651,21 +694,23 @@ public class AuctionSearch implements IAuctionSearch
 	// Convert user inputted form to MySQL form
 	public static String reverseDate(String time) throws java.text.ParseException
 	{
-		// Create a format that parses from XML date format into Java Date format
+		// Create a format that parses from XML date format into Java Date
+		// format
 		String expectedPattern = "yyyy-MM-dd HH:mm:ss";
-        SimpleDateFormat format = new SimpleDateFormat(expectedPattern);   
-        
+		SimpleDateFormat format = new SimpleDateFormat(expectedPattern);
+
 		// Parse from passed in XML date to Java Date
-        Date date = format.parse(time);
-		
-		// Create formatter to convert from Java Date to desired MySQL timestamp format
-        String desiredPattern = "MMM-dd-yy HH:mm:ss";
+		Date date = format.parse(time);
+
+		// Create formatter to convert from Java Date to desired MySQL timestamp
+		// format
+		String desiredPattern = "MMM-dd-yy HH:mm:ss";
 		SimpleDateFormat format2 = new SimpleDateFormat(desiredPattern);
-		
+
 		// Format from Java Date to timestamp format. Return
 		String convertedDate = format2.format(date);
 		return convertedDate;
-    }
+	}
 
 	public String echo(String message)
 	{

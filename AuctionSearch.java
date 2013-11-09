@@ -20,6 +20,12 @@ import edu.ucla.cs.cs144.DbManager;
 import edu.ucla.cs.cs144.SearchConstraint;
 import edu.ucla.cs.cs144.SearchResult;
 
+
+//justin's libraries and shiet
+import java.util.ArrayList;
+import org.apache.commons.lang3.StringEscapeUtils;
+import java.lang.Object;
+
 public class AuctionSearch implements IAuctionSearch
 {
 	// AXIS 2
@@ -457,11 +463,209 @@ public class AuctionSearch implements IAuctionSearch
 		return new SearchResult[0]; // If no constraints passed in, return empty array
 	}
 
-	public String getXMLDataForItemId(String itemId)
-	{
+/**************************************************************/
+//THIS IS MINE (justin)
+/**************************************************************/
+
+
+	public String getXMLDataForItemId(String itemId) {
 		// TODO: Your code here!
+
+		//connect to the database hurr
+		Connection conn = null;
+		XMLBean entry = new XMLBean();
+		try{
+			conn = DbManager.getConnection(true);
+
+		} catch (SQLException e) {
+			System.out.println("Connection to database failed!");
+		}
+		try {
+			Statement s = conn.createStatement();
+			ResultSet rs;
+			String qAuction, qBids, qCategory, qUser, user, result;
+
+			qAuction = "SELECT * FROM Auction WHERE ItemID="+itemId;
+			qBids = "SELECT * FROM (SELECT * FROM Bids WHERE ItemID="+itemId+") as A INNER JOIN Ebay_Users as B WHERE A.UserID = B.UserID";
+			qUser = "SELECT * FROM Ebay_Users WHERE UserID=\"";
+			qCategory = "SELECT Category FROM Category WHERE ItemID="+itemId;
+
+			rs = s.executeQuery(qAuction);
+			rs.next();
+			user = rs.getString("UserID");
+			entry.setItemID(user);
+
+			qUser = qUser + user + "\"";
+			setXMLAuction(entry, rs);
+
+			rs = s.executeQuery(qUser);
+			setXMLUser(entry, rs);
+
+			rs = s.executeQuery(qCategory);
+			setXMLCategory(entry, rs);
+
+			rs = s.executeQuery(qBids);
+			setXMLBids(entry, rs);
+
+			//completed XMLBean
+			result = createItemXML(entry);
+			return result;
+
+		} catch (SQLException e) {
+			System.out.println("ERROR: Query doesn't work in geXMLDataForItemID method!");
+			System.out.println(e);
+		} catch (java.text.ParseException pe) {
+			System.out.println(pe);
+		}
+
 		return null;
 	}
+
+	public void setXMLCategory(XMLBean x, ResultSet rs) {
+		try {
+				String category;
+				while(rs.next()) {
+					category = rs.getString("Category");
+					x.setCategory(category);
+				}
+		} catch(SQLException e) {
+			System.out.println("ERROR: Result Set error in setXMLCategory");
+			System.out.println(e);
+		}
+	}
+
+	public String createItemXML(XMLBean entry) {
+		String result;
+		ArrayList <String> category = new ArrayList <String>();
+		ArrayList <XMLBid> bid = new ArrayList <XMLBid>();
+		category = entry.getCategory();
+		bid = entry.getBid();
+
+		//start of XML output
+		result = 	"<Item ItemID=\""+entry.getItemID()+"\">\n";
+		result +=		"\t<Name>"+entry.getName()+"</Name>\n";
+
+		//category handler
+		if (category.size() < 1) {
+			result += 	"\t<Category />\n";
+		}
+		else {
+			for (int i = 0; i < category.size(); ++i) {
+				result+="\t<Category>"+category.get(i)+"</Category>\n";
+			}
+		}
+
+		result +=		"\t<Currently>$"+entry.getCurrently()+"</Currently>\n";
+		result +=		"\t<First_Bid>$"+entry.getFirstBid()+"</First_Bid>\n";
+		result += 		"\t<Number_of_Bids>"+entry.getNumBids()+"</Number_of_Bids>\n";
+
+		//bid handler
+		if (bid.size() < 1) {	
+			result +=	"\t<Bids />\n";
+		}
+		else {
+			for (int i = 0; i < bid.size(); ++i) {
+				result+= "\t<Bids>\n";
+				result+= 	"\t\t<Bid>\n";
+				result+= 		"\t\t\t<Bidder UserID=\""+bid.get(i).getBidderID()+"\" Rating=\""+bid.get(i).getRating()+"\">\n";
+				result+= 			"\t\t\t\t<Location>"+bid.get(i).getLocation()+"</Location>\n";
+				result+= 			"\t\t\t\t<Country>"+bid.get(i).getCountry()+"</Country>\n";
+				result+= 		"\t\t\t</Bidder>\n";
+				result+= 		"\t\t\t<Time>"+bid.get(i).getTime()+"</Time>\n";
+				result+=		"\t\t\t<Amount>"+bid.get(i).getAmount()+"</Amount>\n";
+				result+=	"\t\t</Bid>\n";
+				result+= "\t</Bids>\n";			
+			}
+		}
+
+		result +=		"\t<Location>"+entry.getLocation()+"</Location>\n";
+		result +=		"\t<Country>"+entry.getCountry()+"</Country>\n";
+		result +=		"\t<Started>"+entry.getStarted()+"</Started>\n";
+		result +=		"\t<Ends>"+entry.getEnds()+"</Ends>\n";
+		result +=		"\t<Seller UserID=\""+entry.getUserID()+"\" Rating=\""+entry.getRating()+"\" />\n";
+
+		//Description handler
+		if (entry.getDesc().equals(""))
+			result +=	"\t<Description /> \n";
+		else
+			result +=	"\t<Description>"+entry.getDesc()+"</Description>\n";
+		result +=		"</Item>";
+		return result;
+	}
+
+
+	public void setXMLBids(XMLBean x, ResultSet rs) throws java.text.ParseException {
+		try {
+			XMLBid bid;
+			String time;
+			while(rs.next()) {
+				bid = new XMLBid();
+				bid.setBidderID(rs.getString("UserID"));
+				bid.setRating(rs.getString("Rating"));
+				bid.setLocation(StringEscapeUtils.escapeXml(rs.getString("Location")));
+				bid.setCountry(StringEscapeUtils.escapeXml(rs.getString("Country")));
+				time = rs.getString("BidTime");
+				time = reverseDate(time);
+				bid.setTime(time);
+				bid.setAmount(rs.getString("Amount"));
+				x.setBid(bid);
+			}
+		} catch (SQLException e) {
+			System.out.println("ERROR: Result set error in setXMLBids");
+			System.out.println(e);
+		}
+	}
+
+	public void setXMLUser(XMLBean x, ResultSet rs) {
+		try {
+			rs.next();
+			x.setUserID(rs.getString("UserID"));
+			x.setRating(rs.getString("Rating"));
+			x.setLocation(StringEscapeUtils.escapeXml(rs.getString("Location")));
+			x.setCountry(StringEscapeUtils.escapeXml(rs.getString("Country")));
+		} catch (SQLException e) {
+			System.out.println("ERROR: Result set error in setXMLUser");
+			System.out.println(e);
+		}
+	}
+
+	public void setXMLAuction(XMLBean x, ResultSet rs) throws java.text.ParseException {
+		try {
+			String time;
+			x.setName(rs.getString("Name"));
+			x.setCurrently(rs.getString("Currently"));
+			x.setFirstBid(rs.getString("First_Bid"));
+			x.setNumBids(rs.getString("Number_of_Bids"));
+			time = rs.getString("Started");
+			time = reverseDate(time);
+			x.setStarted(time);
+			time = rs.getString("Ends");
+			time = reverseDate(time);
+			x.setEnds(time);
+			x.setDesc(StringEscapeUtils.escapeXml(rs.getString("Description")));		
+		} catch (SQLException e) {
+			System.out.println("ERROR: Result set error in setXMLAuction method!");
+		}
+	}
+
+	// Convert user inputted form to MySQL form
+	public static String reverseDate(String time) throws java.text.ParseException
+	{
+		// Create a format that parses from XML date format into Java Date format
+		String expectedPattern = "yyyy-MM-dd HH:mm:ss";
+        SimpleDateFormat format = new SimpleDateFormat(expectedPattern);   
+        
+		// Parse from passed in XML date to Java Date
+        Date date = format.parse(time);
+		
+		// Create formatter to convert from Java Date to desired MySQL timestamp format
+        String desiredPattern = "MMM-dd-yy HH:mm:ss";
+		SimpleDateFormat format2 = new SimpleDateFormat(desiredPattern);
+		
+		// Format from Java Date to timestamp format. Return
+		String convertedDate = format2.format(date);
+		return convertedDate;
+    }
 
 	public String echo(String message)
 	{
